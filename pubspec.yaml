@@ -1,0 +1,31 @@
+name: rope_escape
+description: Rope Escape — swing, jump and outrun the rising death platform. Flutter build for iOS and Android.
+publish_to: "none"
+version: 0.3.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.5.3
+  audioplayers: ^6.5.0
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sprites/
+  fonts:
+    - family: DotGothic16
+      fonts:
+        - asset: assets/fonts/dotgothic16.ttf
+    - family: Silkscreen
+      fonts:
+        - asset: assets/fonts/silkscreen.ttf

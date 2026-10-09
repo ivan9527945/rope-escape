@@ -1,0 +1,44 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/services.dart';
+
+const spriteNames = [
+  'player',
+  'background',
+  'midground1',
+  'midground2',
+  'mothership',
+  'crane1',
+  'ac',
+  'roof1',
+  'wall1',
+  'wall2',
+  'window1',
+  'window2',
+  'escape',
+];
+
+/// Pixel sprite sheets shared with the web build. Drawn with nearest filtering.
+class Sprites {
+  final Map<String, ui.Image> images = {};
+  bool get loaded => images.length == spriteNames.length;
+  String? error;
+  late final Future<void> ready = _load();
+
+  Future<void> load() => ready;
+
+  Future<void> _load() async {
+    try {
+      for (final name in spriteNames) {
+        final data = await rootBundle.load('assets/sprites/$name.png');
+        final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+        final frame = await codec.getNextFrame();
+        images[name] = frame.image;
+      }
+    } catch (e) {
+      error = 'Asset load failed: $e';
+    }
+  }
+
+  ui.Image? operator [](String name) => images[name];
+}

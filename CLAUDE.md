@@ -1,0 +1,54 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
+
+Rope Escape: a Flutter (Dart 3.11, Flutter ≥ 3.41) iOS/Android port of a former React + Canvas web game. Swing on soft Verlet ropes, jump between anchors and outrun a rising death platform. README.md is written in Traditional Chinese; code and comments are English.
+
+## Commands
+
+```sh
+flutter pub get
+flutter analyze                               # flutter_lints, must stay clean
+flutter test                                  # 11 physics tests + 1 screenshot test
+flutter test test/rope_core_test.dart         # physics only (fast, pure Dart)
+flutter test --plain-name "milestones fire"   # single test by name substring
+flutter run                                   # device or simulator
+flutter build ios --simulator
+flutter build ipa                             # needs signing set up in Xcode
+flutter build appbundle
+```
+
+`test/screens_test.dart` drives the real widget tree with real sprites and fonts and writes PNGs to `output/screens/` (menu, play, pause, countdown, result, player-zoom). The README embeds copies from `docs/screens/`; after a visual change, re-run tests and copy the PNGs over.
+
+## Architecture
+
+Three layers with a strict dependency direction: `lib/game` (simulation, pure Dart apart from `controller.dart`) ← `lib/render` (CustomPainter) ← `lib/ui` (widgets). `lib/audio` is used only by the controller.
+
+**Simulation is deterministic and fixed-step.** `ClimbState` (`types.dart`) is a plain mutable object holding everything: player, ropes, traps, pickups, particles, camera, rng. `createClimb(seed)` seeds an LCG stored in the state; `stepClimb(s, 1/60)` advances it. Never read `DateTime`, `Random` or Flutter APIs inside `lib/game/rope_core.dart`, `soft_rope.dart`, `particles.dart` or `weather.dart`. The tests depend on `createClimb()` (seed 17) replaying identically.
+
+**Prediction reuses the production integrator.** `predictClimb` clones the state (`ClimbState.clone()`) and runs `ropeAction` + `stepClimb` on the copy, so the dotted trajectory on screen is always the real outcome. Any new field added to `ClimbState` (or `Rope`, `Trap`, `Pickup`, `RunStats`) must be copied in `clone()` or prediction silently diverges from play.
+
+**Events are strings.** `rope_core.dart` appends names to `s.events` (`catch`, `snap`, `pump`, `lower`, `jump`, `pickup`, `block`, `graze`, `milestone`, `death`). `GameController.update` drains the list each step and maps each name to `GameAudio.effect(name)` and a haptic. Effect names must exist as keys returned by `renderEffects()` in `lib/audio/synth.dart`; UI cues are separate and looked up as `ui_<name>` via `GameAudio.ui`.
+
+**Controller loop and two update channels.** `GameController` runs a `Ticker` with a fixed 1/60 s accumulator (frame dt capped at 0.05 s). Each tick bumps the `frame` `ValueNotifier`, which only repaints the `CustomPaint`; the painter reads the live `game.s` directly. Separately, an immutable `GameView` snapshot is emitted via `notifyListeners` roughly 10×/s or on mode change, and that is what the widget layer (`GameScreen`, HUD, panels) rebuilds from. Keep expensive widget rebuilds out of the per-frame path.
+
+**Stage geometry.** Logical stage width is fixed at 360; `stageHeightFor` extends height from 640 up to 960 to match the device aspect, and `GameScreen` scales it with `FittedBox(fit: cover)`. All render and gesture code works in stage pixels. Safe-area insets are passed into panels as `inset` already divided by the scale.
+
+**Audio is synthesized at startup.** `GameAudio.init` renders every cue, the music loop and the wind loop into WAV bytes in a `compute` isolate (recipes in `synth.dart` mirror the web build's Web Audio graph), writes them to the temp directory and plays them with `audioplayers` in low-latency mode. Until rendering finishes every play call is a no-op, so tests and early frames are silent by design. Music tempo follows tension via playback rate.
+
+**Gestures.** `ropeGesture` in `lib/ui/game_screen.dart` classifies a pointer down/up pair: short tap → pump, mostly-downward swipe → lower, any other swipe → jump. Swipes release only; they do not aim. On-screen `Controls` call the same `RopeAction`s.
+
+**Pause and lifecycle.** Resuming from pause sets `s.countdown = resumeCountdown` (1.5 s) during which `stepClimb` freezes the whole world (only the countdown and screen shake decay); the app auto-pauses when it leaves the foreground. `Mode` has five states (`menu`, `playing`, `paused`, `dying`, `over`); `dying` still animates.
+
+**Persistence.** `Records` (`lib/ui/records.dart`) is the only `shared_preferences` user; `_commitRun` in `GameScreen` updates it once per transition into `Mode.over`.
+
+## Tests
+
+`test/rope_core_test.dart` exports `planRope`, a brute-force search over real control sequences (lowers × pumps × wait → jump) that finds an input plan which catches the next rope using the real stepper. `screens_test.dart` imports it to get a believable mid-run state for the play screenshot. Prefer driving tests through `ropeAction`/`stepClimb` rather than poking state fields.
+
+## Notes
+
+- `assets/sprites/LICENSE.md` restricts the art to personal/educational use; it must be replaced before a store release.
+- `output/` is untracked but not git-ignored; it is regenerated on every `flutter test`.
