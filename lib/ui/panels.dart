@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../game/controller.dart';
@@ -8,11 +10,11 @@ import 'theme.dart';
 const instructions = [
   (
     '01 / SWING',
-    'Tap the screen or press PUMP to swing harder, at the cost of rope wear. Rope positions and lengths are random; moving anchors slide sideways and frayed ropes wear faster. Wall saws are lethal; fans warn before they blow.',
+    'Hold a finger on the screen (or hold PUMP) to swing harder, at the cost of rope wear. Rope positions and lengths are random; moving anchors slide sideways and frayed ropes wear faster. Wall saws are lethal; fans warn before they blow.',
   ),
   (
     '02 / REACH',
-    'Swipe up or sideways, or press JUMP, to fly off along your current tangent and auto-grab the next rope you touch. Swipe down or press LOWER to lengthen the rope and adjust your swing and landing. Faint dots predict the swing, bright dots predict the release path, and the ring marks the predicted catch. SHIELD crates block one saw hit; SLOW crates brake the platform for five seconds.',
+    'Tap anywhere (or press JUMP) to fly off along your current tangent and auto-grab the next rope you touch. The JUMP button and the target ring turn green when a release would reach a higher rope; tap a little early and the jump waits for that moment. Swipe up to release immediately without the assist. Swipe down or press LOWER to lengthen the rope and adjust your swing and landing. Faint dots predict the swing, bright dots predict the release path. SHIELD crates block one saw hit; SLOW crates brake the platform for five seconds.',
   ),
   (
     '03 / ESCAPE',
@@ -164,20 +166,25 @@ class Hud extends StatelessWidget {
             ),
           ),
           Positioned(
-            right: 18,
-            top: 18,
+            right: 10,
+            top: 10,
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: onPause,
-              child: Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xE635353D),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF777786)),
+              // Padding widens the hit target well beyond the drawn circle.
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xE635353D),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF777786)),
+                  ),
+                  child: Text('Ⅱ', style: mono(16, color: Colors.white)),
                 ),
-                child: Text('Ⅱ', style: mono(14, color: Colors.white)),
               ),
             ),
           ),
@@ -258,40 +265,146 @@ class Hud extends StatelessWidget {
   );
 }
 
-class Controls extends StatelessWidget {
+/// Thumb buttons: LOWER, hold-to-PUMP and a large JUMP that lights up while a
+/// release would catch a higher rope.
+class Controls extends StatefulWidget {
   final void Function(RopeAction) onAction;
-  const Controls({super.key, required this.onAction});
+  final VoidCallback onJump;
+  final bool jumpReady, jumpQueued;
+  const Controls({
+    super.key,
+    required this.onAction,
+    required this.onJump,
+    this.jumpReady = false,
+    this.jumpQueued = false,
+  });
+  @override
+  State<Controls> createState() => _ControlsState();
+}
+
+class _ControlsState extends State<Controls> {
+  Timer? _pump;
+
+  void _startPump() {
+    widget.onAction(RopeAction.pump);
+    _pump?.cancel();
+    _pump = Timer.periodic(
+      const Duration(milliseconds: 320),
+      (_) => widget.onAction(RopeAction.pump),
+    );
+  }
+
+  void _stopPump() {
+    _pump?.cancel();
+    _pump = null;
+  }
+
+  @override
+  void dispose() {
+    _stopPump();
+    super.dispose();
+  }
+
+  Widget _button({
+    required String label,
+    String? sub,
+    required Color fill,
+    required Color ink,
+    required Color edge,
+    double fontSize = 12,
+    bool bold = false,
+    List<BoxShadow>? glow,
+  }) => Container(
+    height: 46,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: fill,
+      borderRadius: BorderRadius.circular(23),
+      border: Border.all(color: edge, width: 1.5),
+      boxShadow: glow,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: mono(
+            fontSize,
+            color: ink,
+            weight: bold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        if (sub != null)
+          Text(sub, style: mono(7, color: ink.withValues(alpha: 0.8))),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    Widget b(String label, RopeAction a, {bool primary = false}) =>
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => onAction(a),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
-              color: primary ? Pal.plate : const Color(0xF035353D),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFF888896)),
-            ),
-            child: Text(
-              label,
-              style: mono(
-                11,
-                color: primary ? Pal.ink : Pal.plate,
-                weight: primary ? FontWeight.bold : FontWeight.normal,
-              ),
+    final ready = widget.jumpReady, queued = widget.jumpQueued;
+    return Row(
+      children: [
+        Expanded(
+          flex: 5,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => widget.onAction(RopeAction.lower),
+            child: _button(
+              label: 'LOWER ↓',
+              fill: const Color(0xF035353D),
+              ink: Pal.plate,
+              edge: const Color(0xFF888896),
             ),
           ),
-        );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        b('LOWER ↓', RopeAction.lower),
-        const SizedBox(width: 7),
-        b('PUMP', RopeAction.pump, primary: true),
-        const SizedBox(width: 7),
-        b('JUMP ↑', RopeAction.jump),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          flex: 6,
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (_) => _startPump(),
+            onPointerUp: (_) => _stopPump(),
+            onPointerCancel: (_) => _stopPump(),
+            child: _button(
+              label: 'PUMP',
+              sub: 'HOLD',
+              fill: const Color(0xF035353D),
+              ink: Pal.plate,
+              edge: const Color(0xFF888896),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          flex: 8,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => widget.onJump(),
+            child: _button(
+              label: 'JUMP ↑',
+              sub: ready
+                  ? 'NOW'
+                  : queued
+                  ? 'WAITING…'
+                  : null,
+              fill: ready ? const Color(0xFFCCE493) : Pal.plate,
+              ink: Pal.ink,
+              edge: ready ? const Color(0xFF29665C) : const Color(0xFF888896),
+              fontSize: 14,
+              bold: true,
+              glow: ready
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x9929665C),
+                        blurRadius: 14,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -452,8 +565,8 @@ class PausePanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _key('TAP', 'Pump', 'wears the rope'),
-              _key('SWIPE UP', 'Jump', 'fly off the tangent'),
+              _key('TAP', 'Jump', 'waits for the green ring'),
+              _key('HOLD', 'Pump', 'swing harder, wears the rope'),
               _key('SWIPE DOWN', 'Lower', 'adjust the landing'),
             ],
           ),
@@ -654,16 +767,16 @@ class StartHint extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _row(
-                      PixelGlyphs.tap,
-                      'Tap',
+                      PixelGlyphs.hold,
+                      'Hold',
                       'PUMP',
                       'swing harder, wears the rope',
                     ),
                     _row(
-                      PixelGlyphs.up,
-                      'Swipe up',
+                      PixelGlyphs.tap,
+                      'Tap',
                       'JUMP',
-                      'fly off, auto-grab the next rope',
+                      'fly off when the ring is green',
                     ),
                     _row(
                       PixelGlyphs.down,
@@ -673,7 +786,7 @@ class StartHint extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tap or swipe to start · the floor waits for you',
+                      'Hold to pump and start · the floor waits for you',
                       textAlign: TextAlign.center,
                       style: mono(8, color: Pal.grey, spacing: 1),
                     ),

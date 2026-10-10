@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,15 +10,22 @@ import 'panels.dart';
 import 'records.dart';
 import 'theme.dart';
 
-/// Swipe classification in logical stage pixels; a swipe releases, it does not aim.
-RopeAction? ropeGesture(Offset start, Offset end, int elapsedMs) {
+enum StageGesture { tap, swipeDown, swipe }
+
+/// Classifies a pointer down/up pair in logical stage pixels. A tap is an
+/// assisted jump, a downward swipe lowers, any other swipe jumps at once.
+/// Holding still is handled separately as a pump.
+StageGesture? stageGesture(Offset start, Offset end) {
   final dx = end.dx - start.dx, dy = end.dy - start.dy;
   final d = math.sqrt(dx * dx + dy * dy);
-  if (d < 12) return elapsedMs < 600 ? RopeAction.pump : null;
-  if (d < 22) return null;
-  if (dy > 20 && dy > dx.abs() * 0.8) return RopeAction.lower;
-  return RopeAction.jump;
+  if (d < 18) return StageGesture.tap;
+  if (d < 26) return null;
+  if (dy > 20 && dy > dx.abs() * 0.8) return StageGesture.swipeDown;
+  return StageGesture.swipe;
 }
+
+/// Holding a finger still this long starts pumping; it repeats while held.
+const holdPumpDelay = Duration(milliseconds: 320);
 
 class GameScreen extends StatefulWidget {
   final GameController? controller;
@@ -32,9 +40,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool help = false;
   ({bool record, int previous})? result;
   int? _pointer;
-  Offset? _from;
-  DateTime? _downAt;
-  bool _cancelled = false;
+  Offset? _from, _last;
+  bool _cancelled = false, _pumped = false;
+  Timer? _hold;
   Mode _lastMode = Mode.menu;
 
   @override
@@ -93,8 +101,33 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     setState(() => help = true);
   }
 
+  void _startHold() {
+    _hold?.cancel();
+    _pumped = false;
+    _hold = Timer.periodic(holdPumpDelay, (t) {
+      final from = _from, last = _last;
+      if (from == null || game.s.mode != Mode.playing) {
+        t.cancel();
+        return;
+      }
+      // A finger that already travelled is a swipe in progress, not a hold.
+      if (!_pumped && last != null && (last - from).distance >= 18) {
+        t.cancel();
+        return;
+      }
+      _pumped = true;
+      game.action(RopeAction.pump);
+    });
+  }
+
+  void _endHold() {
+    _hold?.cancel();
+    _hold = null;
+  }
+
   @override
   void dispose() {
+    _endHold();
     WidgetsBinding.instance.removeObserver(this);
     game.removeListener(_onView);
     if (widget.controller == null) game.dispose();
@@ -141,30 +174,44 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                         if (v.mode != Mode.playing) return;
                         if (_pointer != null) {
                           _cancelled = true;
+                          _endHold();
                           return;
                         }
                         _pointer = e.pointer;
                         _from = e.localPosition;
-                        _downAt = DateTime.now();
+                        _last = e.localPosition;
                         _cancelled = false;
+                        _startHold();
+                      },
+                      onPointerMove: (e) {
+                        if (_pointer == e.pointer) _last = e.localPosition;
                       },
                       onPointerUp: (e) {
                         if (_pointer != e.pointer) return;
-                        final from = _from, at = _downAt;
+                        final from = _from, pumped = _pumped;
                         _pointer = null;
-                        if (!_cancelled &&
-                            from != null &&
-                            at != null &&
-                            game.s.mode == Mode.playing) {
-                          final a = ropeGesture(
-                            from,
-                            e.localPosition,
-                            DateTime.now().difference(at).inMilliseconds,
-                          );
-                          if (a != null) game.action(a);
+                        _endHold();
+                        if (_cancelled ||
+                            pumped ||
+                            from == null ||
+                            game.s.mode != Mode.playing) {
+                          return;
+                        }
+                        switch (stageGesture(from, e.localPosition)) {
+                          case StageGesture.tap:
+                            game.jump();
+                          case StageGesture.swipeDown:
+                            game.action(RopeAction.lower);
+                          case StageGesture.swipe:
+                            game.jump(assist: false);
+                          case null:
+                            break;
                         }
                       },
-                      onPointerCancel: (_) => _pointer = null,
+                      onPointerCancel: (_) {
+                        _pointer = null;
+                        _endHold();
+                      },
                       child: ValueListenableBuilder<int>(
                         valueListenable: game.frame,
                         builder: (_, _, _) => CustomPaint(
@@ -201,7 +248,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                         left: 18,
                         right: 18,
                         bottom: 16 + inset.bottom,
-                        child: Controls(onAction: game.action),
+                        child: Controls(
+                          onAction: game.action,
+                          onJump: game.jump,
+                          jumpReady: v.jumpReady,
+                          jumpQueued: v.jumpQueued,
+                        ),
                       ),
                     if (v.mode == Mode.playing && !countdown)
                       StartHint(visible: !v.armed),

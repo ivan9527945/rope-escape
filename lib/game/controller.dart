@@ -12,12 +12,15 @@ import 'types.dart';
 
 const resumeCountdown = 1.5;
 
+/// How long an assisted jump waits for a catch to line up before giving up.
+const jumpAssistWindow = 0.45;
+
 /// Snapshot of the simulation for the widget layer, refreshed ~10×/s.
 class GameView {
   final Mode mode;
   final int score, wear, gap, combo;
   final String notice, reason;
-  final bool shield, ready, assetsLoaded, armed;
+  final bool shield, ready, assetsLoaded, armed, jumpReady, jumpQueued;
   final String? assetError;
   final double brake, time, countdown;
   final RunStats stats;
@@ -33,6 +36,8 @@ class GameView {
     required this.ready,
     required this.assetsLoaded,
     required this.armed,
+    required this.jumpReady,
+    required this.jumpQueued,
     required this.assetError,
     required this.brake,
     required this.time,
@@ -57,6 +62,8 @@ class GameController extends ChangeNotifier {
   Duration _last = Duration.zero;
   double _accumulator = 0, _emitClock = 0;
   int _lastTick = -1;
+  double _jumpBuffer = 0;
+  bool _wasReady = false;
   late GameView view = _snapshot();
 
   GameController() {
@@ -84,6 +91,7 @@ class GameController extends ChangeNotifier {
     audio.reset();
     audio.ui('click');
     preview = null;
+    _jumpBuffer = 0;
     decor.reset();
     _syncAudio();
     _emit();
@@ -91,6 +99,7 @@ class GameController extends ChangeNotifier {
 
   void menu() {
     s = createClimb()..mode = Mode.menu;
+    _jumpBuffer = 0;
     audio.ui('click');
     _syncAudio();
     _emit();
@@ -114,6 +123,40 @@ class GameController extends ChangeNotifier {
   void action(RopeAction a) {
     ropeAction(s, a);
     preview = null;
+    _emit();
+  }
+
+  /// Whether releasing right now would catch a rope above the current one.
+  bool get jumpReady {
+    final p = preview, held = s.attached;
+    if (p == null || held == null) return false;
+    final t = p.flight.target;
+    return p.flight.result == 'catch' && t != null && t.id > held;
+  }
+
+  bool get jumpQueued => _jumpBuffer > 0;
+
+  bool _catchAhead() {
+    final held = s.attached;
+    if (held == null) return false;
+    final f = predictClimb(s);
+    final t = f.target;
+    return f.result == 'catch' && t != null && t.id > held;
+  }
+
+  /// Jump with timing assist: if no catch is lined up yet the jump is queued
+  /// for a short window and fires on the first frame one appears. A swipe
+  /// passes [assist] false and releases immediately.
+  void jump({bool assist = true}) {
+    if (s.mode != Mode.playing || s.countdown > 0 || s.attached == null) {
+      return;
+    }
+    if (!assist || _catchAhead()) {
+      _jumpBuffer = 0;
+      action(RopeAction.jump);
+      return;
+    }
+    _jumpBuffer = jumpAssistWindow;
     _emit();
   }
 
@@ -154,6 +197,21 @@ class GameController extends ChangeNotifier {
     }
     s.events.clear();
     if (before != Mode.over && s.mode == Mode.over) audio.ui('over');
+    if (_jumpBuffer > 0) {
+      if (s.mode != Mode.playing || s.attached == null) {
+        _jumpBuffer = 0;
+      } else if (_catchAhead()) {
+        _jumpBuffer = 0;
+        ropeAction(s, RopeAction.jump);
+        preview = null;
+      } else {
+        _jumpBuffer -= dt;
+        if (_jumpBuffer <= 0) {
+          s.notice = 'NOT YET · jump when the ring turns green';
+          s.noticeTime = 1.2;
+        }
+      }
+    }
     if (s.attached != null &&
         math.sin(s.theta).abs() < 0.15 &&
         s.omega.abs() > 1.8) {
@@ -170,8 +228,11 @@ class GameController extends ChangeNotifier {
             : Prediction.empty,
       );
     }
+    final ready = jumpReady;
+    if (ready && !_wasReady && haptics) HapticFeedback.selectionClick();
+    _wasReady = ready;
     _emitClock += dt;
-    if (_emitClock > 0.1 || before != s.mode) {
+    if (_emitClock > 0.1 || before != s.mode || ready != view.jumpReady) {
       _emitClock = 0;
       _emit();
     }
@@ -213,6 +274,8 @@ class GameController extends ChangeNotifier {
       ready: s.attached != null,
       assetsLoaded: sprites.loaded,
       armed: s.armed,
+      jumpReady: jumpReady,
+      jumpQueued: _jumpBuffer > 0,
       assetError: sprites.error,
       brake: s.brake,
       time: s.t,
