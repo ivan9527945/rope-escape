@@ -19,6 +19,7 @@ flutter build ios --simulator
 flutter build ipa                             # needs signing set up in Xcode
 flutter build appbundle
 tool/store_capture.sh <udid> output/store/iphone-6.9 886x1920   # App Store shots + 30 s preview
+tool/release.sh --bump                       # clean build + upload to App Store Connect (bumps build number)
 ```
 
 `tool/store_capture.sh` boots a simulator, runs `integration_test/store_capture_test.dart` (an autoplay that uses `predictClimb` with a short lookahead, `_jumpWait`, to decide pump/lower/jump), screenshots each phase the test writes to its Documents dir, and trims the `simctl recordVideo` into an App Preview with ffmpeg. Use the iPhone 17 Pro Max (1320×2868) and iPad Pro 13-inch (2064×2752, preview 1200x1600) simulators for store sizes.

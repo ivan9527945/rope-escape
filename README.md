@@ -54,6 +54,7 @@ flutter run                       # 連接的裝置或模擬器
 flutter build ios --simulator     # 模擬器建置
 flutter build ipa                 # App Store 上架需先在 Xcode 設定簽署
 flutter build appbundle           # Google Play（AAB）
+tool/release.sh --bump            # 清理、建置並上傳到 App Store Connect（用 Xcode 登入的帳號）
 ```
 
 `test/screens_test.dart` 會用真實素材與字型渲染選單、遊玩、暫停、倒數與結算畫面並存成 PNG（`output/screens/`）。測試環境沒有系統字型，部分繁體中文與符號可能顯示為方框；實機會自動回退到系統字型（PingFang／Noto Sans CJK）。若要更新 README 的截圖，跑完測試後把 `output/screens/` 的圖複製到 `docs/screens/`。
