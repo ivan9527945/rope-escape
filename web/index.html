@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="description" content="Rope Escape 繩索逃生：擺盪、跳躍，逃離不斷上升的死亡平台。瀏覽器版。">
+  <meta name="theme-color" content="#15151C">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Rope Escape">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Rope Escape</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; height: 100%; background: #15151C; overflow: hidden; }
+    #boot {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      background: #15151C; color: #DEDEE7; font: 13px/1.4 "Courier New", monospace;
+      letter-spacing: 0.12em; text-transform: uppercase; z-index: 10;
+      transition: opacity .35s ease;
+    }
+    #boot.done { opacity: 0; pointer-events: none; }
+    #boot .bar { width: 160px; height: 8px; border: 2px solid #53535E; padding: 1px; }
+    #boot .bar i { display: block; height: 100%; width: 0; background: #E3C15A; animation: fill 2.4s ease-out forwards; }
+    @keyframes fill { to { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div id="boot"><div>Rope Escape</div><div class="bar"><i></i></div><div style="opacity:.6">loading</div></div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var b = document.getElementById('boot');
+      b.classList.add('done');
+      setTimeout(function () { b.remove(); }, 400);
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rope Escape — Swing, jump and outrun the rising floor</title>
+<meta name="description" content="Rope Escape is a one-thumb rope-climbing action game: soft Verlet ropes, swing momentum and a floor that never stops rising. Play it right here in your browser or get it on the App Store.">
+<meta name="theme-color" content="#008080">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Rope Escape">
+<meta property="og:description" content="Swing, jump and outrun the rising floor. Play in your browser.">
+<meta property="og:image" content="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icon-16.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 16×16 pixel icons, drawn with rects so they stay crisp at any scale -->
+    <symbol id="i-doc" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="3" y="1" width="8" height="14" fill="#fff"/><rect x="11" y="4" width="2" height="11" fill="#fff"/>
+      <rect x="11" y="1" width="1" height="3" fill="#c0c0c0"/><rect x="12" y="2" width="1" height="2" fill="#c0c0c0"/>
+      <rect x="2" y="1" width="1" height="14" fill="#404040"/><rect x="13" y="4" width="1" height="11" fill="#404040"/>
+      <rect x="3" y="15" width="11" height="1" fill="#404040"/><rect x="3" y="0" width="9" height="1" fill="#404040"/>
+      <rect x="5" y="5" width="5" height="1" fill="#404040"/><rect x="5" y="7" width="6" height="1" fill="#404040"/>
+      <rect x="5" y="9" width="4" height="1" fill="#404040"/><rect x="5" y="11" width="6" height="1" fill="#404040"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="4" y="1" width="8" height="1" fill="#000080"/><rect x="2" y="2" width="2" height="2" fill="#000080"/><rect x="12" y="2" width="2" height="2" fill="#000080"/>
+      <rect x="1" y="4" width="1" height="8" fill="#000080"/><rect x="14" y="4" width="1" height="8" fill="#000080"/>
+      <rect x="2" y="12" width="2" height="2" fill="#000080"/><rect x="12" y="12" width="2" height="2" fill="#000080"/><rect x="4" y="14" width="8" height="1" fill="#000080"/>
+      <rect x="4" y="2" width="8" height="12" fill="#4080ff"/><rect x="2" y="4" width="12" height="8" fill="#4080ff"/>
+      <rect x="7" y="4" width="2" height="2" fill="#fff"/><rect x="7" y="7" width="2" height="5" fill="#fff"/>
+    </symbol>
+    <symbol id="i-monitor" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="1" width="14" height="11" fill="#c0c0c0"/><rect x="1" y="1" width="14" height="1" fill="#fff"/><rect x="1" y="11" width="14" height="1" fill="#404040"/><rect x="14" y="1" width="1" height="11" fill="#404040"/>
+      <rect x="3" y="3" width="10" height="7" fill="#15151c"/><rect x="5" y="4" width="1" height="5" fill="#e3c15a"/><rect x="8" y="5" width="2" height="3" fill="#dedee7"/>
+      <rect x="6" y="12" width="4" height="1" fill="#808080"/><rect x="4" y="13" width="8" height="2" fill="#c0c0c0"/><rect x="4" y="14" width="8" height="1" fill="#404040"/>
+    </symbol>
+    <symbol id="i-bag" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="5" y="1" width="6" height="1" fill="#404040"/><rect x="4" y="2" width="1" height="3" fill="#404040"/><rect x="11" y="2" width="1" height="3" fill="#404040"/>
+      <rect x="2" y="5" width="12" height="10" fill="#4c6a8c"/><rect x="2" y="5" width="12" height="1" fill="#8fb0d0"/><rect x="2" y="14" width="12" height="1" fill="#223348"/>
+      <rect x="6" y="8" width="4" height="4" fill="#e3c15a"/>
+    </symbol>
+    <symbol id="i-flag" viewBox="0 0 16 14" shape-rendering="crispEdges">
+      <rect x="0" y="2" width="7" height="5" fill="#d03030"/><rect x="8" y="1" width="7" height="5" fill="#30a030"/>
+      <rect x="0" y="8" width="7" height="5" fill="#3050d0"/><rect x="8" y="7" width="7" height="5" fill="#e0c020"/>
+    </symbol>
+    <symbol id="g-min" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="1" y="7" width="6" height="2" fill="currentColor"/></symbol>
+    <symbol id="g-max" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M0 0h9v9H0zM1 2v6h7V2z" fill="currentColor" fill-rule="evenodd"/></symbol>
+    <symbol id="g-restore" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M3 0h7v7H8V3H3zM0 3h7v7H0zM1 5v4h5V5z" fill="currentColor" fill-rule="evenodd"/></symbol>
+    <symbol id="g-close" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M1 1h2v1h1v1h2V2h1V1h2v2H8v1H7v2h1v1h1v2H7V8H6V7H4v1H3v1H1V7h1V6h1V4H2V3H1z" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<div id="boot" aria-hidden="true">
+  <div class="boot-logo">ROPE<br>ESCAPE</div>
+  <div class="boot-sub">Starting Rope Escape 95…</div>
+  <div class="boot-bar"><i></i></div>
+</div>
+
+<main id="desktop" aria-label="Desktop">
+  <nav id="shortcuts" aria-label="Desktop shortcuts">
+    <button class="shortcut" data-open="game" style="--slot:0"><img src="assets/icon-32.png" width="32" height="32" alt="" draggable="false"><span>Rope Escape</span></button>
+    <button class="shortcut" data-open="help" style="--slot:1"><svg width="32" height="32"><use href="#i-doc"/></svg><span>How to play.txt</span></button>
+    <button class="shortcut" data-open="about" style="--slot:2"><svg width="32" height="32"><use href="#i-info"/></svg><span>About</span></button>
+    <a class="shortcut" href="https://apps.apple.com/app/id6821199045" target="_blank" rel="noopener noreferrer" style="--slot:3"><svg width="32" height="32"><use href="#i-bag"/></svg><span>App Store</span></a>
+  </nav>
+
+  <!-- The game window: the "screen" that runs the actual Flutter build -->
+  <section class="window game-window" id="w-game" data-win="game" data-title="Rope Escape" aria-label="Rope Escape game window">
+    <div class="titlebar">
+      <span class="caption"><img src="assets/icon-16.png" width="16" height="16" alt="">Rope Escape</span>
+      <span class="controls">
+        <button data-min aria-label="Minimize"><svg><use href="#g-min"/></svg></button>
+        <button data-max aria-label="Maximize"><svg class="g-max"><use href="#g-max"/></svg><svg class="g-restore"><use href="#g-restore"/></svg></button>
+        <button data-close aria-label="Close"><svg><use href="#g-close"/></svg></button>
+      </span>
+    </div>
+    <div class="menubar"><button data-open="help"><u>H</u>elp</button><button data-open="about"><u>A</u>bout</button></div>
+    <div class="game-body">
+      <iframe id="game" src="play/" title="Rope Escape" allow="autoplay; fullscreen" loading="eager"></iframe>
+    </div>
+    <div class="statusbar"><span id="game-status">Click the screen to start. Keys: Space jump, ↓ lower, hold Shift to pump, Esc pause</span><span class="status-cell">360×640</span></div>
+  </section>
+
+  <section class="window about-window" id="w-about" data-win="about" data-title="About Rope Escape" role="dialog" aria-labelledby="about-title">
+    <div class="titlebar">
+      <span class="caption"><svg width="16" height="16"><use href="#i-info"/></svg>About Rope Escape</span>
+      <span class="controls"><button data-min aria-label="Minimize"><svg><use href="#g-min"/></svg></button><button data-close aria-label="Close"><svg><use href="#g-close"/></svg></button></span>
+    </div>
+    <div class="body about-body">
+      <h1 id="about-title" class="pixel-title">ROPE<br>ESCAPE</h1>
+      <p class="tagline">A one-thumb rope-climbing action game</p>
+      <p>Soft Verlet ropes, swing momentum, random anchors and traps, and a floor that never stops rising. Swing, let go, catch the next rope and see how high you can climb.</p>
+      <ul class="features">
+        <li>Tap to jump: the game checks whether you can reach a higher rope</li>
+        <li>Saw wheels, snapping ropes, shields and pickups, randomized every run</li>
+        <li>Offline, no ads, no in-app purchases, no data collected</li>
+        <li>Sound and music are synthesized at launch and speed up with the tension</li>
+      </ul>
+      <div class="actions">
+        <a class="btn" href="https://apps.apple.com/app/id6821199045" target="_blank" rel="noopener noreferrer"><svg width="16" height="16"><use href="#i-bag"/></svg>App Store</a>
+        <button class="btn" data-msg="android"><svg width="16" height="16"><use href="#i-bag"/></svg>Android <small>Coming soon</small></button>
+      </div>
+      <p class="credit">A game by IVAN LIN</p>
+    </div>
+  </section>
+
+  <section class="window text-window" id="w-help" data-win="help" data-title="How to play.txt" role="dialog" aria-label="How to play">
+    <div class="titlebar">
+      <span class="caption"><svg width="16" height="16"><use href="#i-doc"/></svg>How to play.txt - Notepad</span>
+      <span class="controls"><button data-min aria-label="Minimize"><svg><use href="#g-min"/></svg></button><button data-close aria-label="Close"><svg><use href="#g-close"/></svg></button></span>
+    </div>
+    <div class="menubar"><button data-open="game"><u>P</u>lay</button><button data-close-self><u>C</u>lose</button></div>
+    <pre class="body text-body">ROPE ESCAPE — HOW TO PLAY
+=========================
+
+Goal
+  Hang on a rope, swing, and jump to higher ropes
+  to stay ahead of the floor rising from below.
+  The higher you climb, the higher the score.
+  1500 m and above is an S rank.
+
+Touch / mouse
+  Tap .............. Jump (auto-catches next rope)
+  Hold ............. Pump: swing harder, wears rope
+  Swipe down ....... Lower: lengthen the rope
+  Swipe up/side .... Jump at once, no assist
+  II (top right) ... Pause
+
+Keyboard (desktop / browser)
+  Space or ↑ ....... Jump
+  ↓ ................ Lower
+  Hold Shift / ← → . Pump
+  Esc or P ......... Pause / resume
+  Enter ............ Start / play again
+
+Tips
+  * When JUMP turns green, letting go will
+    always catch a higher rope.
+  * Pressing a little early is fine: the jump
+    waits for the green light.
+  * Saw wheels cut the rope; a shield blocks
+    one hit.
+  * The browser version keeps records on this
+    device only. Nothing is uploaded.</pre>
+  </section>
+
+  <section class="window msg-window" id="w-msg" data-win="msg" data-title="Rope Escape" role="alertdialog" aria-labelledby="msg-title">
+    <div class="titlebar"><span class="caption" id="msg-title">Rope Escape</span><span class="controls"><button data-close aria-label="Close"><svg><use href="#g-close"/></svg></button></span></div>
+    <div class="body msg-body"><svg width="32" height="32"><use href="#i-info"/></svg><p id="msg-text"></p></div>
+    <div class="msg-actions"><button class="btn" data-close-self autofocus>OK</button></div>
+  </section>
+</main>
+
+<nav id="start-menu" aria-label="Start menu" hidden>
+  <div class="start-brand"><span>Rope Escape</span><b>95</b></div>
+  <div class="start-items">
+    <button data-open="game"><img src="assets/icon-16.png" width="16" height="16" alt="">Play Rope Escape</button>
+    <button data-open="help"><svg width="16" height="16"><use href="#i-doc"/></svg>How to play</button>
+    <button data-open="about"><svg width="16" height="16"><use href="#i-info"/></svg>About Rope Escape</button>
+    <hr>
+    <a href="https://apps.apple.com/app/id6821199045" target="_blank" rel="noopener noreferrer"><svg width="16" height="16"><use href="#i-bag"/></svg>Get it on the App Store</a>
+    <button data-msg="android"><svg width="16" height="16"><use href="#i-bag"/></svg>Android <small>Coming soon</small></button>
+    <hr>
+    <button id="reset-desktop"><svg width="16" height="16"><use href="#i-monitor"/></svg>Reset window layout</button>
+  </div>
+</nav>
+
+<div class="taskbar">
+  <button class="btn start-button" id="start-button" aria-expanded="false" aria-controls="start-menu"><svg width="16" height="14"><use href="#i-flag"/></svg>Start</button>
+  <span class="task-divider"></span>
+  <div id="tasks"></div>
+  <div class="tray"><span class="tray-icon" title="Rope Escape 95"><svg width="16" height="16"><use href="#i-monitor"/></svg></span><time id="clock"></time></div>
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>

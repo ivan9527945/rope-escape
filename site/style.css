@@ -1,0 +1,150 @@
+/* Rope Escape 95 — an original Windows 95-flavoured shell for the brand site. */
+@font-face { font-family: "Silkscreen"; src: url("assets/fonts/silkscreen.ttf") format("truetype"); font-display: swap; }
+
+:root {
+  --desk: #008080;
+  --face: #c0c0c0;
+  --hi: #ffffff;
+  --lite: #dfdfdf;
+  --shade: #808080;
+  --dark: #0a0a0a;
+  --title: #000080;
+  --title-off: #808080;
+  --ink: #000;
+  --gold: #e3c15a;
+  --taskbar: 30px;
+  --font: 13px/1.35 Arial, "Helvetica Neue", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--desk); color: var(--ink); font: var(--font); overflow: hidden; -webkit-font-smoothing: none; }
+button { font: inherit; color: inherit; }
+img, svg { display: block; }
+img { image-rendering: pixelated; }
+
+/* Bevels */
+.raised { background: var(--face); box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--lite), inset -2px -2px var(--shade), inset 2px 2px var(--hi); }
+.btn, .titlebar .controls button {
+  background: var(--face); border: 0; cursor: default; color: var(--ink); text-decoration: none;
+  box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--hi), inset -2px -2px var(--shade), inset 2px 2px var(--lite);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 12px; min-height: 28px;
+}
+.btn:active, .btn.active, .titlebar .controls button:active {
+  box-shadow: inset 1px 1px var(--dark), inset -1px -1px var(--hi), inset 2px 2px var(--shade), inset -2px -2px var(--lite);
+  padding: 6px 11px 4px 13px;
+}
+.btn.active { background: repeating-conic-gradient(var(--hi) 0 25%, var(--face) 0 50%) 0 0 / 2px 2px; font-weight: bold; }
+.btn:focus-visible { outline: 1px dotted var(--ink); outline-offset: -5px; }
+.btn small { font-size: 10px; color: #444; margin-left: 2px; }
+.link { background: none; border: 0; padding: 0; color: var(--title); text-decoration: underline; cursor: pointer; }
+
+/* Boot screen */
+#boot { position: fixed; inset: 0; z-index: 1000; background: #000; color: #dedee7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; font-family: "Courier New", monospace; letter-spacing: .1em; transition: opacity .3s; }
+#boot.done { opacity: 0; pointer-events: none; }
+.boot-logo { font: 40px/1 "Silkscreen", monospace; color: var(--gold); text-align: center; text-shadow: 3px 3px #53535e; }
+.boot-sub { font-size: 12px; opacity: .7; }
+.boot-bar { width: 200px; height: 12px; border: 2px solid #53535e; padding: 2px; }
+.boot-bar i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--gold) 0 8px, transparent 8px 10px); animation: boot-fill 1.4s steps(12) forwards; }
+@keyframes boot-fill { to { width: 100%; } }
+
+/* Desktop */
+#desktop { position: relative; height: calc(100svh - var(--taskbar)); overflow: hidden; }
+#shortcuts { position: absolute; top: 12px; left: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 1; }
+.shortcut { width: 84px; padding: 4px 2px; background: none; border: 1px solid transparent; color: #fff; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: default; text-align: center; }
+.shortcut span { font-size: 12px; line-height: 1.2; padding: 1px 3px; background: var(--desk); text-shadow: 1px 1px #000; }
+.shortcut svg, .shortcut img { width: 32px; height: 32px; filter: drop-shadow(1px 1px 0 rgba(0,0,0,.6)); }
+.shortcut:focus-visible, .shortcut.selected { outline: 0; }
+.shortcut:focus-visible span, .shortcut.selected span { background: var(--title); outline: 1px dotted #ffffcc; }
+
+/* Windows */
+.window { position: absolute; display: flex; flex-direction: column; background: var(--face); padding: 3px; min-width: 200px;
+  box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--lite), inset -2px -2px var(--shade), inset 2px 2px var(--hi); }
+.window[hidden] { display: none; }
+.window.min { display: none; }
+.titlebar { background: var(--title-off); color: var(--face); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 2px 2px 2px 4px; min-height: 20px; font-weight: bold; user-select: none; touch-action: none; cursor: default; }
+.window.focused .titlebar { background: var(--title); color: #fff; }
+.caption { display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.titlebar .controls { display: flex; gap: 2px; }
+.titlebar .controls button { width: 18px; min-height: 16px; height: 16px; padding: 0; }
+.titlebar .controls button svg { width: 10px; height: 10px; }
+.titlebar .controls button[data-close] { margin-left: 2px; }
+.g-restore { display: none; }
+.window.max .g-restore { display: block; }
+.window.max .g-max { display: none; }
+.menubar { display: flex; gap: 2px; padding: 2px 0 3px; }
+.menubar button { background: none; border: 1px solid transparent; padding: 1px 7px; cursor: default; }
+.menubar button:hover, .menubar button:focus-visible { box-shadow: inset -1px -1px var(--shade), inset 1px 1px var(--hi); outline: 0; }
+.menubar button:active { box-shadow: inset 1px 1px var(--shade), inset -1px -1px var(--hi); }
+.body { background: #fff; box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--shade), inset -2px -2px var(--lite), inset 2px 2px var(--dark); padding: 12px 14px; overflow: auto; flex: 1; min-height: 0; }
+.statusbar { display: flex; gap: 3px; margin-top: 3px; font-size: 12px; }
+.statusbar > * { flex: 1; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--shade); }
+.statusbar .status-cell { flex: 0 0 auto; }
+
+/* Game window: the monitor that shows the real build */
+.game-window { width: calc(var(--gw) + 6px); }
+.game-body { width: var(--gw); height: var(--gh); background: #15151c; box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--shade), inset -2px -2px var(--lite), inset 2px 2px var(--dark); padding: 2px; }
+#game { width: 100%; height: 100%; border: 0; display: block; background: #15151c; }
+body.dragging iframe { pointer-events: none; }
+.window.max { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; }
+.window.max .game-body { width: auto; height: auto; flex: 1; min-height: 0; }
+
+/* About */
+.about-window { width: 420px; max-width: calc(100vw - 24px); }
+.about-body { background: var(--face); box-shadow: none; padding: 14px 18px 12px; }
+.pixel-title { font: 34px/1 "Silkscreen", monospace; color: #292932; margin: 4px 0 6px; text-shadow: 3px 3px var(--gold); letter-spacing: -1px; }
+.tagline { margin: 0 0 10px; font-weight: bold; color: #292932; }
+.about-body p { margin: 0 0 10px; }
+.features { margin: 0 0 14px; padding-left: 18px; }
+.features li { margin: 3px 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.credit { font-size: 12px; color: #333; margin: 0; }
+.credit a { color: var(--title); }
+
+/* Notepad */
+.text-window { width: 470px; max-width: calc(100vw - 24px); height: 480px; max-height: calc(100svh - var(--taskbar) - 24px); }
+.text-body { margin: 0; font: 13px/1.5 "Courier New", monospace; white-space: pre-wrap; }
+
+/* Message box */
+.msg-window { width: 340px; }
+.msg-body { background: var(--face); box-shadow: none; display: flex; gap: 14px; align-items: flex-start; padding: 16px 16px 8px; }
+.msg-body p { margin: 4px 0 0; }
+.msg-actions { display: flex; justify-content: center; padding: 6px 0 8px; }
+.msg-actions .btn { min-width: 84px; }
+
+/* Start menu */
+#start-menu { position: fixed; left: 2px; bottom: var(--taskbar); z-index: 900; display: flex; background: var(--face); padding: 3px;
+  box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--lite), inset -2px -2px var(--shade), inset 2px 2px var(--hi); }
+#start-menu[hidden] { display: none; }
+.start-brand { width: 26px; background: linear-gradient(180deg, #000 0%, var(--title) 70%); color: var(--face); writing-mode: vertical-rl; transform: rotate(180deg); display: flex; align-items: center; justify-content: flex-start; gap: 4px; padding: 10px 2px; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+.start-brand b { color: #fff; font-size: 18px; }
+.start-items { display: flex; flex-direction: column; min-width: 190px; padding: 2px 0; }
+.start-items button, .start-items a { display: flex; align-items: center; gap: 10px; padding: 7px 24px 7px 10px; background: none; border: 0; color: var(--ink); text-decoration: none; text-align: left; cursor: default; }
+.start-items button:hover, .start-items a:hover, .start-items button:focus-visible, .start-items a:focus-visible { background: var(--title); color: #fff; outline: 0; }
+.start-items small { color: inherit; opacity: .75; font-size: 11px; }
+.start-items hr { border: 0; border-top: 1px solid var(--shade); border-bottom: 1px solid var(--hi); margin: 3px 2px; }
+
+/* Taskbar */
+.taskbar { position: fixed; left: 0; right: 0; bottom: 0; height: var(--taskbar); background: var(--face); box-shadow: inset 0 1px var(--hi), inset 0 2px var(--lite); border-top: 1px solid var(--lite); display: flex; align-items: center; gap: 4px; padding: 3px 3px 2px; z-index: 950; }
+.start-button { font-weight: bold; padding: 2px 8px; min-height: 22px; }
+.start-button svg { width: 16px; height: 14px; }
+.task-divider { width: 2px; height: 20px; box-shadow: inset 1px 0 var(--shade), inset -1px 0 var(--hi); margin: 0 2px; }
+#tasks { display: flex; gap: 3px; flex: 1; min-width: 0; overflow: hidden; }
+#tasks .btn { min-height: 22px; padding: 2px 8px; max-width: 160px; flex: 1 1 0; justify-content: flex-start; white-space: nowrap; overflow: hidden; }
+#tasks .btn span { overflow: hidden; text-overflow: ellipsis; }
+.tray { display: flex; align-items: center; gap: 8px; padding: 0 8px; min-height: 22px; box-shadow: inset 1px 1px var(--shade), inset -1px -1px var(--hi); font-size: 12px; }
+.tray-icon svg { width: 16px; height: 16px; }
+
+/* Phones: every window is maximized and shortcuts collapse to a row */
+@media (max-width: 720px) {
+  #shortcuts { flex-direction: row; flex-wrap: wrap; top: 6px; left: 6px; right: 6px; gap: 2px; }
+  .shortcut { width: 72px; }
+  .shortcut svg, .shortcut img { width: 28px; height: 28px; }
+  .window { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; max-width: none; max-height: none; }
+  .window .game-body { width: auto; height: auto; flex: 1; min-height: 0; }
+  .titlebar .controls button[data-max] { display: none; }
+  .msg-window { top: auto !important; height: auto !important; bottom: 0; }
+  #tasks .btn span { display: none; }
+  #tasks .btn { flex: 0 0 auto; }
+  .tray-icon { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #boot { display: none; } }

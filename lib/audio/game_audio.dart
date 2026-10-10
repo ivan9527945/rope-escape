@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../game/types.dart';
+import 'audio_store_io.dart'
+    if (dart.library.js_interop) 'audio_store_web.dart';
 import 'synth.dart';
 
 Future<Map<String, Uint8List>> _renderAll(int _) async => {
@@ -14,9 +13,11 @@ Future<Map<String, Uint8List>> _renderAll(int _) async => {
 };
 
 /// Plays the procedurally rendered cues. Rendering happens once in a background
-/// isolate; until it finishes every call is a silent no-op.
+/// isolate (on the web, where isolates are unavailable, `compute` runs it
+/// inline); until it finishes every call is a silent no-op. Storage is
+/// platform-specific: temp files on mobile, blob URLs on the web.
 class GameAudio {
-  final Map<String, String> _paths = {};
+  final Map<String, Source> _sources = {};
   final List<AudioPlayer> _pool = [];
   AudioPlayer? _music, _wind;
   final Map<String, int> counts = {};
@@ -30,16 +31,8 @@ class GameAudio {
 
   Future<void> init() async {
     try {
-      final dir = Directory(
-        '${(await getTemporaryDirectory()).path}/rope-audio',
-      );
-      await dir.create(recursive: true);
       final rendered = await compute(_renderAll, 0);
-      for (final e in rendered.entries) {
-        final f = File('${dir.path}/${e.key}.wav');
-        await f.writeAsBytes(e.value, flush: true);
-        _paths[e.key] = f.path;
-      }
+      _sources.addAll(await storeAudio(rendered));
       if (_disposed) return;
       await AudioPlayer.global.setAudioContext(
         AudioContext(
@@ -101,8 +94,8 @@ class GameAudio {
     if (!ready || _disposed || music == null || wind == null) return;
     if (_active) {
       if (music.state != PlayerState.playing) {
-        await music.play(DeviceFileSource(_paths['music']!), volume: 0.7);
-        await wind.play(DeviceFileSource(_paths['wind']!), volume: 0.3);
+        await music.play(_sources['music']!, volume: 0.7);
+        await wind.play(_sources['wind']!, volume: 0.3);
       } else {
         await music.setVolume(0.7);
       }
@@ -130,13 +123,11 @@ class GameAudio {
   }
 
   void _play(String name) {
-    final path = _paths[name];
-    if (path == null || _pool.isEmpty) return;
+    final src = _sources[name];
+    if (src == null || _pool.isEmpty) return;
     counts[name] = (counts[name] ?? 0) + 1;
     final p = _pool[_next++ % _pool.length];
-    p
-        .play(DeviceFileSource(path), mode: PlayerMode.lowLatency)
-        .catchError((_) {});
+    p.play(src, mode: PlayerMode.lowLatency).catchError((_) {});
   }
 
   void reset() {

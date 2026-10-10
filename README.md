@@ -16,6 +16,22 @@
 | :-: | :-: |
 | ![恢復倒數](docs/screens/countdown.png) | ![結算](docs/screens/result.png) |
 
+## 瀏覽器版與形象網站
+
+![形象網站](docs/site.jpg)
+
+`flutter build web` 可直接建置瀏覽器版（Flutter Web、CanvasKit）：遊戲邏輯與繪製都是純 Dart／CustomPainter，只有音效儲存層依平台切換——行動裝置把合成好的 WAV 寫到暫存目錄（`lib/audio/audio_store_io.dart`），瀏覽器則包成 blob URL（`audio_store_web.dart`）。瀏覽器與桌機可用鍵盤：Space／↑ 跳離、↓ 放長、按住 Shift 或 ←→ 加力、Esc／P 暫停、Enter 開始。
+
+`site/` 是 Windows 95 風格的形象網站（原創 HTML／CSS／JS，無框架，文案為英文）：桌面捷徑、可拖曳的視窗、開始功能表、工作列與時鐘；主視窗是「電腦螢幕」，用 iframe 載入 `play/` 的 Flutter Web 建置，另有 About、How to play 與 App Store 連結。手機寬度時所有視窗自動最大化。
+
+```sh
+tool/build_site.sh              # flutter build web + site/ → output/site/
+tool/build_site.sh /rope-escape/   # 部署在子路徑（如 GitHub Pages）時指定 base
+python3 -m http.server -d output/site 8080   # 本機預覽 http://localhost:8080/
+```
+
+遊戲本身只有一份程式碼：日後調整玩法、畫面或音效都直接改 `lib/` 的 Flutter 檔案，iOS／Android 與瀏覽器版會一起變；網站只需重跑 `tool/build_site.sh` 重新打包 `play/`。只有 `site/` 的外殼文案與視窗需要另外改 HTML。
+
 ## App Store 素材
 
 `tool/store_capture.sh` 會在 iOS 模擬器上自動遊玩一場（`integration_test/store_capture_test.dart`，以遊戲自己的預測器決定何時加力、放長、跳離），依階段擷取截圖並把錄影剪成 App Preview：
@@ -41,6 +57,7 @@ tool/store_capture.sh <iPad Pro 13-inch UDID>  output/store/ipad-13    1200x1600
 | `audioplayers` | 低延遲播放離線合成的音效與配樂（iOS 使用 ambient 類別，與其他 App 混音） |
 | `path_provider` | 將合成好的 WAV 寫入暫存目錄 |
 | `shared_preferences` | 個人紀錄（最佳高度、場次、最佳連擊、最長時間、累計） |
+| `web` | 瀏覽器版把合成好的音效包成 blob URL |
 
 ## 啟動與驗證
 

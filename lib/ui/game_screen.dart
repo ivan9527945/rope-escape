@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../game/controller.dart';
 import '../game/types.dart';
@@ -47,7 +48,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   int? _pointer;
   Offset? _from, _last;
   bool _cancelled = false, _pumped = false;
-  Timer? _hold;
+  Timer? _hold, _keyPump;
   Mode _lastMode = Mode.menu;
 
   @override
@@ -60,7 +61,64 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         .accessibilityFeatures
         .disableAnimations;
     game.addListener(_onView);
+    HardwareKeyboard.instance.addHandler(_onKey);
     Records.load().then((r) => setState(() => records = r));
+  }
+
+  /// Keyboard controls for desktop and web builds: Space/↑ jump, ↓ lower,
+  /// holding ←/→ or Shift pumps, Esc/P pauses, Enter starts.
+  bool _onKey(KeyEvent e) {
+    final k = e.logicalKey;
+    final pumpKey =
+        k == LogicalKeyboardKey.arrowLeft ||
+        k == LogicalKeyboardKey.arrowRight ||
+        k == LogicalKeyboardKey.shiftLeft ||
+        k == LogicalKeyboardKey.shiftRight ||
+        k == LogicalKeyboardKey.keyC;
+    if (e is KeyUpEvent) {
+      if (pumpKey) {
+        _keyPump?.cancel();
+        _keyPump = null;
+      }
+      return false;
+    }
+    if (e is! KeyDownEvent) return false;
+    final mode = game.s.mode;
+    if (k == LogicalKeyboardKey.enter) {
+      if (mode == Mode.menu || mode == Mode.over) _start();
+      return true;
+    }
+    if (k == LogicalKeyboardKey.escape || k == LogicalKeyboardKey.keyP) {
+      if (help) {
+        setState(() => help = false);
+      } else if (mode == Mode.playing || mode == Mode.paused) {
+        game.pause();
+      }
+      return true;
+    }
+    if (mode != Mode.playing) return false;
+    if (k == LogicalKeyboardKey.space ||
+        k == LogicalKeyboardKey.arrowUp ||
+        k == LogicalKeyboardKey.keyW ||
+        k == LogicalKeyboardKey.keyZ) {
+      game.jump();
+      return true;
+    }
+    if (k == LogicalKeyboardKey.arrowDown ||
+        k == LogicalKeyboardKey.keyS ||
+        k == LogicalKeyboardKey.keyX) {
+      game.action(RopeAction.lower);
+      return true;
+    }
+    if (pumpKey && _keyPump == null) {
+      game.action(RopeAction.pump);
+      _keyPump = Timer.periodic(holdPumpDelay, (t) {
+        if (game.s.mode != Mode.playing) return;
+        game.action(RopeAction.pump);
+      });
+      return true;
+    }
+    return false;
   }
 
   @override
@@ -133,6 +191,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _endHold();
+    _keyPump?.cancel();
+    HardwareKeyboard.instance.removeHandler(_onKey);
     WidgetsBinding.instance.removeObserver(this);
     game.removeListener(_onView);
     if (widget.controller == null) game.dispose();

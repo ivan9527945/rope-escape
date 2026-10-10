@@ -1,0 +1,17 @@
+{
+    "name": "Rope Escape",
+    "short_name": "Rope Escape",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#15151C",
+    "theme_color": "#15151C",
+    "description": "Rope Escape 繩索逃生：擺盪、跳躍，逃離不斷上升的死亡平台。",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        { "src": "icons/Icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons/Icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons/Icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "icons/Icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}
