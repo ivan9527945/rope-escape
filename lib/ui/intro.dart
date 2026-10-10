@@ -12,7 +12,7 @@ import '../render/sprites.dart';
 import 'theme.dart';
 
 /// Length of the launch animation; a tap skips to the end.
-const introDuration = Duration(milliseconds: 2600);
+const introDuration = Duration(milliseconds: 2000);
 
 /// Launch animation drawn over the menu right after the native launch screen:
 /// the canyon rushes up from below as if falling into the city, the climber
