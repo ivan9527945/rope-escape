@@ -16,17 +16,29 @@
 | :-: | :-: |
 | ![恢復倒數](docs/screens/countdown.png) | ![結算](docs/screens/result.png) |
 
+## App Store 素材
+
+`tool/store_capture.sh` 會在 iOS 模擬器上自動遊玩一場（`integration_test/store_capture_test.dart`，以遊戲自己的預測器決定何時加力、放長、跳離），依階段擷取截圖並把錄影剪成 App Preview：
+
+```sh
+xcrun simctl list devices available            # 取得模擬器 UDID
+tool/store_capture.sh <iPhone 17 Pro Max UDID> output/store/iphone-6.9 886x1920
+tool/store_capture.sh <iPad Pro 13-inch UDID>  output/store/ipad-13    1200x1600
+```
+
+輸出到指定目錄：選單／提示／遊玩／暫停／倒數／結算的 PNG（iPhone 6.9 吋 1320×2868、iPad 13 吋 2064×2752）、`preview-<WxH>.mp4`（H.264、30 fps、30 秒內、含靜音音軌）與原始 `raw.mov`。每場隨機，若想要更長的遊玩可再跑一次。
+
 ## 需求
 
 - Flutter 3.41 以上（Dart 3.11）
-- iOS：Xcode 15 以上、CocoaPods；Bundle ID `com.katsumitec.ropeEscape`
+- iOS：Xcode 15 以上、CocoaPods；Bundle ID `com.ivan9527945.ropeEscape`（Team 自動簽署）
 - Android：Android SDK 36、接受 SDK 授權（`flutter doctor --android-licenses`）；Application ID `com.katsumitec.rope_escape`
 
 ### 套件
 
 | 套件 | 用途 |
 | --- | --- |
-| `audioplayers` | 低延遲播放離線合成的音效與配樂 |
+| `audioplayers` | 低延遲播放離線合成的音效與配樂（iOS 使用 ambient 類別，與其他 App 混音） |
 | `path_provider` | 將合成好的 WAV 寫入暫存目錄 |
 | `shared_preferences` | 個人紀錄（最佳高度、場次、最佳連擊、最長時間、累計） |
 
@@ -37,6 +49,7 @@ flutter pub get
 flutter analyze
 flutter test                      # 物理回歸（11 項）+ 畫面截圖測試（輸出至 output/screens/）
 flutter test test/rope_core_test.dart   # 只跑物理測試
+flutter test integration_test/store_capture_test.dart -d <udid>   # 模擬器自動遊玩（見上方）
 flutter run                       # 連接的裝置或模擬器
 flutter build ios --simulator     # 模擬器建置
 flutter build ipa                 # App Store 上架需先在 Xcode 設定簽署
@@ -54,7 +67,7 @@ flutter build appbundle           # Google Play（AAB）
 - `lib/game/particles.dart`：由模擬種子驅動的確定性粒子。
 - `lib/game/weather.dart`：時間驅動的風場排程。
 - `lib/game/controller.dart`：固定 60 Hz 步長的 `Ticker` 迴圈、預測快取、事件→音效／震動、暫停倒數、介面快照（`GameView`）。
-- `lib/render/`：`Draw` 畫布工具、場景（天空、雲、光束、纜線、façade、高度牌）、人物與繩索／錨點、機關／道具／粒子／護盾、死亡平台與後製。舞台邏輯寬度固定 360，高度依裝置比例在 640～960 之間延伸，不出現黑邊。
+- `lib/render/`：`Draw` 畫布工具、場景（天空、雲、光束、纜線、façade、高度牌）、人物與繩索／錨點、機關／道具／粒子／護盾、死亡平台與後製。人物為程式繪製的像素攀繩者（`climber.dart` 的 `_drawFigure`）：抓繩時身體沿繩索方向、雙手輪流上抓、屈膝勾繩，空中則伸手撲向下一條繩。舞台邏輯寬度固定 360，高度依裝置比例在 640～960 之間延伸，手機不出現黑邊；比舞台更寬的螢幕（iPad）則左右留邊，確保 HUD 與控制鈕在畫面內。
 - `lib/audio/synth.dart`、`game_audio.dart`：啟動時在背景 isolate 離線合成與網頁版相同配方的音效與配樂（WAV），以 `audioplayers` 低延遲播放；合成完成前所有播放呼叫皆為空操作；介面提示音在暫停時仍可播放；緊張度以播放速率調整配樂節奏。
 - `lib/ui/`：工業鋼板主題元件（`SteelPanel`、`SteelButton`、`StatTile`、警示條）、選單／HUD／控制鈕／倒數／暫停／結算／指南面板、`shared_preferences` 紀錄與評級（S／A／B／C／D 依高度 1500／900／500／200 m 分級）。
 
@@ -69,4 +82,9 @@ flutter build appbundle           # Google Play（AAB）
 
 ## 素材授權
 
-人物與城市素材沿用 `assets/sprites/LICENSE.md`（個人娛樂／教育用途，並非 MIT 素材授權），正式上架前請換成自有或已授權的美術。字型（DotGothic16、Silkscreen）授權見 `assets/fonts/` 的 OFL 檔案。
+`assets/sprites/` 內所有像素圖均由 `tool/gen_sprites.py` 程式產生（天際線、立面磁磚、桁架、飛船、冷氣與逃生梯），人物以程式繪製，沒有第三方遊戲素材；授權同本專案（MIT）。字型 DotGothic16 與 Silkscreen 採 SIL Open Font License 1.1，見 `assets/fonts/`。
+
+## 上架資訊
+
+- iOS Bundle ID：`com.ivan9527945.ropeEscape`；Android：`com.katsumitec.rope_escape`。
+- 支援頁 [SUPPORT.md](SUPPORT.md)、隱私政策 [PRIVACY.md](PRIVACY.md) 供 App Store Connect 使用。

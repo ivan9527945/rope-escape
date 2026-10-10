@@ -146,6 +146,121 @@ void _drawAnchor(Draw d, ClimbState s, Rope r, double y, bool held, double t) {
   d.rect(x - 1, y + 6, 2, 1, const Color(0xFF232329));
 }
 
+const _inkBody = Color(0xFF2B2B36),
+    _inkEdge = Color(0xFF42424F),
+    _inkDark = Color(0xFF1A1A22),
+    _skin = Color(0xFFF1D2B0),
+    _hair = Color(0xFFE8C86A),
+    _shoe = Color(0xFFF4F4F8),
+    _belt = Color(0xFF6B5A3A),
+    _buckle = Color(0xFFD8D8E2);
+
+/// Procedural pixel climber in local space: origin at the hips, facing +x,
+/// the cord running straight up through x = 0 while held. With [ink] every
+/// pixel is drawn in that single colour (used for the halo pass).
+void _drawFigure(Draw d, ClimbState s, Player p, bool air, {Color? ink}) {
+  Color c(Color x) => ink ?? x;
+  void limb(List<List<double>> pts, double w) =>
+      _strokePath(d, pts, c(_inkBody), w);
+  final rising = p.vy < 0;
+  // Hand-over-hand cadence while hanging; a faster flutter in the air.
+  final k = math.sin(s.t * 2 * math.pi * 0.9);
+  final flutter = math.sin(s.t * 16);
+  // Arms are drawn first so the head covers them.
+  if (!air) {
+    final handA = -17.0 + k * 2.5, handB = -17.0 - k * 2.5;
+    limb([
+      [-3, -3],
+      [-3, handA + 4],
+      [0, handA],
+    ], 3);
+    limb([
+      [3, -3],
+      [3, handB + 4],
+      [0, handB],
+    ], 3);
+    // Leading knee hooks the cord, trailing leg pushes down against it.
+    final bend = 3.0 + k * 2;
+    limb([
+      [-1, 4],
+      [bend + 1, 8],
+      [0, 12],
+    ], 3);
+    limb([
+      [1, 4],
+      [-1, 9],
+      [-1, 14 - k],
+    ], 3);
+    d.rect(-2, 11, 4, 2, c(_shoe));
+    d.rect(-3, 13 - k, 4, 2, c(_shoe));
+    d.rect(-1.5, handA - 1.5, 3, 3, c(_skin));
+    d.rect(-1.5, handB - 1.5, 3, 3, c(_skin));
+  } else if (rising) {
+    // Reaching up for the next anchor, legs tucked and trailing.
+    limb([
+      [-3, -3],
+      [-1, -10],
+      [4, -15],
+    ], 3);
+    limb([
+      [3, -3],
+      [5, -9],
+      [8, -14],
+    ], 3);
+    limb([
+      [-1, 4],
+      [-5, 8],
+      [-7, 12 + flutter],
+    ], 3);
+    limb([
+      [1, 4],
+      [1, 9],
+      [-2, 13 - flutter],
+    ], 3);
+    d.rect(3, -17, 3, 3, c(_skin));
+    d.rect(7, -16, 3, 3, c(_skin));
+    d.rect(-9, 11 + flutter, 4, 2, c(_shoe));
+    d.rect(-4, 12 - flutter, 4, 2, c(_shoe));
+  } else {
+    // Falling: arms out for balance, legs spread.
+    limb([
+      [-3, -3],
+      [-8, -7],
+      [-10, -11],
+    ], 3);
+    limb([
+      [3, -3],
+      [8, -8],
+      [11, -12],
+    ], 3);
+    limb([
+      [-1, 4],
+      [-5, 9],
+      [-6, 14 + flutter * 0.5],
+    ], 3);
+    limb([
+      [1, 4],
+      [5, 9],
+      [6, 14 - flutter * 0.5],
+    ], 3);
+    d.rect(-12, -13, 3, 3, c(_skin));
+    d.rect(10, -14, 3, 3, c(_skin));
+    d.rect(-8, 13 + flutter * 0.5, 4, 2, c(_shoe));
+    d.rect(4, 13 - flutter * 0.5, 4, 2, c(_shoe));
+  }
+  // Torso, lit on the facing side, with the belt and buckle.
+  d.rect(-3, -4, 6, 8, c(_inkBody));
+  d.rect(2, -4, 1, 8, c(_inkEdge));
+  d.rect(-3, 3, 6, 2, c(_belt));
+  d.rect(-1, 3, 2, 2, c(_buckle));
+  // Head with a swept-back fringe and one eye on the facing side.
+  d.rect(-3, -11, 6, 6, c(_skin));
+  d.rect(-3, -13, 6, 2, c(_hair));
+  d.rect(-5, -12, 2, 2, c(_hair));
+  d.rect(-3, -11, 1, 2, c(_hair));
+  d.rect(1, -9, 1, 1, c(_inkDark));
+}
+
 void drawClimber(Draw d, ClimbState s, PreviewPair? preview, Decor decor) {
   final cy = s.camera.y - d.m, p = s.player;
   for (final q in s.trail) {
@@ -228,9 +343,6 @@ void drawClimber(Draw d, ClimbState s, PreviewPair? preview, Decor decor) {
   final air = s.attached == null;
   final facing = p.vx < -4 ? -1.0 : 1.0;
   final speed = math.sqrt(p.vx * p.vx + p.vy * p.vy);
-  final frame = air
-      ? (p.vy < 0 ? 16 + (s.t * 10).floor() % 4 : 20 + (s.t * 10).floor() % 7)
-      : 16 + (s.t * 6).floor() % 4;
   final sx = p.x.roundToDouble(), sy = (p.y - cy).roundToDouble();
   if (s.mode != Mode.menu) {
     final scarf = decor.scarf;
@@ -277,73 +389,20 @@ void drawClimber(Draw d, ClimbState s, PreviewPair? preview, Decor decor) {
   }
   d.c.save();
   d.c.translate(sx, sy);
-  d.c.rotate(s.bodyAngle * 0.65);
+  // On the cord the body hangs along it (local +y points down the rope);
+  // airborne it leans with momentum like before.
+  d.c.rotate(air ? s.bodyAngle * 0.65 : -s.theta);
   d.c.scale(facing, 1);
+  // Pale halo first so the dark figure reads against dark façades.
   d.alpha = 0.9;
   for (final o in const [(-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0)]) {
-    d.sprite(
-      'player',
-      -15 + o.$1,
-      -14 + o.$2,
-      scale: 1.25,
-      frame: frame,
-      w: 24,
-      h: 24,
-      tint: const Color(0xFFF4F4F8),
-    );
+    d.c.save();
+    d.c.translate(o.$1, o.$2);
+    _drawFigure(d, s, p, air, ink: const Color(0xFFF4F4F8));
+    d.c.restore();
   }
   d.alpha = 1;
-  if (!air) {
-    // Arms reach to the grip behind the body so the head and hair stay visible.
-    _strokePath(
-      d,
-      [
-        [-3, -2],
-        [-4, -7],
-        [-1, -10],
-      ],
-      const Color(0xFF232329),
-      3,
-    );
-    _strokePath(
-      d,
-      [
-        [3, -2],
-        [2, -7],
-        [0, -10],
-      ],
-      const Color(0xFF232329),
-      3,
-    );
-  }
-  d.sprite('player', -15, -14, scale: 1.25, frame: frame, w: 24, h: 24);
-  d.rect(-5, 2, 10, 2, const Color(0xFF6B5A3A));
-  d.rect(-1, 1, 3, 4, const Color(0xFFD8D8E2));
-  if (!air) {
-    d.rect(-2, -12, 4, 3, const Color(0xFFF4F4F8));
-    d.rect(-2, -2, 3, 3, const Color(0xFFFFFFFF));
-  } else {
-    _strokePath(
-      d,
-      [
-        [-3, -3],
-        [-9, -7],
-      ],
-      const Color(0xFF232329),
-      2.5,
-    );
-    _strokePath(
-      d,
-      [
-        [3, -3],
-        [9, -8],
-      ],
-      const Color(0xFF232329),
-      2.5,
-    );
-    d.rect(-11, -9, 3, 3, const Color(0xFFF4F4F8));
-    d.rect(8, -10, 3, 3, const Color(0xFFF4F4F8));
-  }
+  _drawFigure(d, s, p, air);
   d.c.restore();
   if (s.catchFlash > 0) {
     final age = 1 - s.catchFlash / 0.22;

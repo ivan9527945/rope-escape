@@ -43,10 +43,9 @@ class GameAudio {
       if (_disposed) return;
       await AudioPlayer.global.setAudioContext(
         AudioContext(
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.ambient,
-            options: const {AVAudioSessionOptions.mixWithOthers},
-          ),
+          // Ambient already mixes with other apps; asking for mixWithOthers
+          // explicitly trips an audioplayers assertion in debug builds.
+          iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
           android: const AudioContextAndroid(
             isSpeakerphoneOn: false,
             stayAwake: false,
@@ -88,10 +87,12 @@ class GameAudio {
     final changed = audible != _active;
     _active = audible;
     if (!ready) return;
-    if (changed) _applyState();
+    // Playback failures are never fatal: swallow them so an unprepared player
+    // (e.g. a seek before the source loads) cannot surface as an unhandled error.
+    if (changed) _applyState().catchError((_) {});
     if (audible) {
-      _music?.setPlaybackRate(1 + _tension * 0.28);
-      _wind?.setVolume((0.5 + 0.5 * _tension) * 0.6);
+      _music?.setPlaybackRate(1 + _tension * 0.28).catchError((_) {});
+      _wind?.setVolume((0.5 + 0.5 * _tension) * 0.6).catchError((_) {});
     }
   }
 
@@ -140,10 +141,11 @@ class GameAudio {
 
   void reset() {
     _last.clear();
-    if (ready) _music?.seek(Duration.zero);
+    if (ready) _music?.seek(Duration.zero).catchError((_) {});
   }
 
   Future<void> dispose() async {
+    if (_disposed) return;
     _disposed = true;
     for (final p in _pool) {
       await p.dispose();

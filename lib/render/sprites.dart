@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 
 const spriteNames = [
-  'player',
   'background',
   'midground1',
   'midground2',

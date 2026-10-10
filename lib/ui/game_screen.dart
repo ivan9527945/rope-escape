@@ -122,10 +122,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             bottom: pad.bottom / scale,
           );
           // Tight constraints make FittedBox scale the stage up; cover removes
-          // any sub-pixel gap at the edges.
+          // any sub-pixel gap at the edges. Viewports wider than the stage
+          // (iPad, 3:4) would lose the HUD and controls to the crop, so they
+          // get pillarboxed instead.
+          final wide = c.maxWidth / c.maxHeight > stageW / stageH + 0.01;
           return SizedBox.expand(
             child: FittedBox(
-              fit: BoxFit.cover,
+              fit: wide ? BoxFit.contain : BoxFit.cover,
               clipBehavior: Clip.hardEdge,
               child: SizedBox(
                 width: stageW,
