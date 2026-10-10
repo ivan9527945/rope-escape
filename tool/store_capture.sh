@@ -63,7 +63,7 @@ kill -INT "$REC_PID"; wait "$REC_PID" || true
 # Clip: the 30 s App Preview starts just before the first move; if the run
 # ended sooner, back up so the clip is still at least 15 s long.
 START=$(echo "${T_HINT:-0} - 0.5" | bc)
-END=$(echo "$START + 30" | bc)
+END=$(echo "$START + 29" | bc)
 LIMIT=$(echo "${T_RESULT:-$(now)} + 2.5" | bc)
 if [ "$(echo "$END > $LIMIT" | bc)" = 1 ]; then END=$LIMIT; fi
 if [ "$(echo "$END - $START < 15" | bc)" = 1 ]; then START=$(echo "$END - 15" | bc); fi
@@ -72,7 +72,7 @@ W=${PREVIEW%x*}; H=${PREVIEW#*x}
 ffmpeg -loglevel error -y -ss "$START" -to "$END" -i "$OUT/raw.mov" \
   -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
   -vf "scale=$W:$H:force_original_aspect_ratio=increase,crop=$W:$H,fps=30,format=yuv420p" \
-  -c:v libx264 -profile:v high -crf 18 -c:a aac -b:a 96k -shortest -movflags +faststart \
+  -c:v libx264 -profile:v high -crf 25 -preset slow -c:a aac -b:a 96k -shortest -movflags +faststart \
   "$OUT/preview-$PREVIEW.mp4"
 echo "clip ${START}s → ${END}s"
 ls -la "$OUT"
