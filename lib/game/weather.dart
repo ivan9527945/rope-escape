@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 /// Time-driven climate schedule. Only wind feeds the rope simulation; the rest
-/// is kept so the schedule matches the web version frame for frame.
+/// is kept so the schedule stays deterministic frame for frame.
 class Climate {
   final String id, name;
   final double wind, gust;

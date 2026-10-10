@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 // Original procedural score and Foley, rendered offline into 16-bit stereo WAV
-// buffers. The recipes mirror the web Web Audio graph (oscillator voices with
-// exponential pitch ramps and band-passed noise hits) so both builds sound alike.
+// buffers: oscillator voices with exponential pitch ramps and band-passed
+// noise hits.
 const sampleRate = 32000;
 
 double hz(num midi) => 440 * math.pow(2, (midi - 69) / 12).toDouble();
@@ -16,7 +16,7 @@ class Mix {
       left = Float32List((seconds * sampleRate).ceil()),
       right = Float32List((seconds * sampleRate).ceil());
 
-  // Deterministic noise shared by every hit, matching the web LCG buffer.
+  // Deterministic noise shared by every hit, from a fixed-seed LCG.
   static final Float32List _noise = () {
     final n = Float32List(sampleRate * 2);
     var seed = 419;

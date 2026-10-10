@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rope_escape/game/rope_core.dart';
 import 'package:rope_escape/game/types.dart';
 
-/// Search real control sequences until the next rope is caught, like the web
-/// planner: lowers × pumps × wait, then a jump integrated with the real stepper.
+/// Search real control sequences until the next rope is caught, as a
+/// planner would: lowers × pumps × wait, then a jump integrated with the real stepper.
 ({ClimbState state, int lowers, int pumps, double wait, int frames})? planRope(
   ClimbState base,
 ) {

@@ -1,8 +1,8 @@
 # 繩索逃生 Rope Escape · Flutter 雙平台版
 
-以 Flutter 重寫的 iOS／Android 版本，玩法與畫面延續原本的 React + Canvas 網頁版（已移除）：柔軟 Verlet 繩索、擺盪動量、同一積分器產生的預測線、隨機錨點／陷阱／道具、持續上升的死亡平台、工業像素風的暫停與結算面板。
+以 Flutter 製作的 iOS／Android 攀繩動作遊戲：柔軟 Verlet 繩索、擺盪動量、同一積分器產生的預測線、隨機錨點／陷阱／道具、持續上升的死亡平台、工業像素風的暫停與結算面板。
 
-本目錄是完整獨立的 Flutter 專案，素材與字型已複製進 `assets/`，不依賴網頁版目錄。
+本目錄是完整獨立的 Flutter 專案，素材與字型都在 `assets/`。
 
 ## 遊玩畫面
 
@@ -32,7 +32,7 @@ tool/store_capture.sh <iPad Pro 13-inch UDID>  output/store/ipad-13    1200x1600
 
 - Flutter 3.41 以上（Dart 3.11）
 - iOS：Xcode 15 以上、CocoaPods；Bundle ID `com.ivan9527945.ropeEscape`（Team 自動簽署）
-- Android：Android SDK 36、接受 SDK 授權（`flutter doctor --android-licenses`）；Application ID `com.katsumitec.rope_escape`
+- Android：Android SDK 36、接受 SDK 授權（`flutter doctor --android-licenses`）；Application ID `com.ivan9527945.ropeEscape`
 
 ### 套件
 
@@ -68,7 +68,7 @@ flutter build appbundle           # Google Play（AAB）
 - `lib/game/weather.dart`：時間驅動的風場排程。
 - `lib/game/controller.dart`：固定 60 Hz 步長的 `Ticker` 迴圈、預測快取、事件→音效／震動、暫停倒數、介面快照（`GameView`）。
 - `lib/render/`：`Draw` 畫布工具、場景（天空、雲、光束、纜線、façade、高度牌）、人物與繩索／錨點、機關／道具／粒子／護盾、死亡平台與後製。人物為程式繪製的像素攀繩者（`climber.dart` 的 `_drawFigure`）：抓繩時身體沿繩索方向、雙手輪流上抓、屈膝勾繩，空中則伸手撲向下一條繩。舞台邏輯寬度固定 360，高度依裝置比例在 640～960 之間延伸，手機不出現黑邊；比舞台更寬的螢幕（iPad）則左右留邊，確保 HUD 與控制鈕在畫面內。
-- `lib/audio/synth.dart`、`game_audio.dart`：啟動時在背景 isolate 離線合成與網頁版相同配方的音效與配樂（WAV），以 `audioplayers` 低延遲播放；合成完成前所有播放呼叫皆為空操作；介面提示音在暫停時仍可播放；緊張度以播放速率調整配樂節奏。
+- `lib/audio/synth.dart`、`game_audio.dart`：啟動時在背景 isolate 離線合成音效與配樂（WAV），以 `audioplayers` 低延遲播放；合成完成前所有播放呼叫皆為空操作；介面提示音在暫停時仍可播放；緊張度以播放速率調整配樂節奏。
 - `lib/ui/`：工業鋼板主題元件（`SteelPanel`、`SteelButton`、`StatTile`、警示條）、選單／HUD／控制鈕／倒數／暫停／結算／指南面板、`shared_preferences` 紀錄與評級（S／A／B／C／D 依高度 1500／900／500／200 m 分級）。
 
 ## 操作
@@ -86,5 +86,5 @@ flutter build appbundle           # Google Play（AAB）
 
 ## 上架資訊
 
-- iOS Bundle ID：`com.ivan9527945.ropeEscape`；Android：`com.katsumitec.rope_escape`。
+- iOS Bundle ID：`com.ivan9527945.ropeEscape`；Android：`com.ivan9527945.ropeEscape`。
 - 支援頁 [SUPPORT.md](SUPPORT.md)、隱私政策 [PRIVACY.md](PRIVACY.md) 供 App Store Connect 使用。

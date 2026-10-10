@@ -6,7 +6,7 @@ import 'sprites.dart';
 
 const paper = Color(0xFFEEEED6);
 
-/// Thin canvas helper mirroring the web RopeLoop primitives: integer-aligned
+/// Thin canvas helper with pixel-art primitives: integer-aligned
 /// rectangles, half-pixel lines and monospace labels.
 class Draw {
   final Canvas c;
@@ -183,7 +183,7 @@ class Draw {
         : align == TextAlign.right
         ? x - tp.width
         : x;
-    // Canvas text baselines sit at y in the web build; approximate with the ascent.
+    // Text baselines sit at y; approximate with the ascent.
     tp.paint(
       c,
       Offset(dx.roundToDouble(), (y - tp.height * 0.82).roundToDouble()),

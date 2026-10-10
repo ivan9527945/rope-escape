@@ -1,4 +1,4 @@
-package com.katsumitec.rope_escape
+package com.ivan9527945.ropeEscape
 
 import io.flutter.embedding.android.FlutterActivity
 
