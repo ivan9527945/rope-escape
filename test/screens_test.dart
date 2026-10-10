@@ -9,6 +9,7 @@ import 'package:rope_escape/game/controller.dart';
 import 'package:rope_escape/game/types.dart';
 import 'package:rope_escape/render/painter.dart';
 import 'package:rope_escape/ui/game_screen.dart';
+import 'package:rope_escape/ui/intro.dart';
 import 'package:rope_escape/ui/panels.dart';
 import 'package:rope_escape/ui/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -97,7 +98,7 @@ void main() {
           theme: buildTheme(),
           home: RepaintBoundary(
             key: const Key('stage'),
-            child: GameScreen(controller: game),
+            child: GameScreen(controller: game, showIntro: false),
           ),
         ),
       );
@@ -187,4 +188,35 @@ void main() {
       expect(game.tickerActive, isFalse);
     },
   );
+
+  testWidgets('launch intro renders mid-animation, then yields to the menu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    late final GameController game;
+    await tester.runAsync(() async {
+      game = GameController();
+      await game.sprites.ready;
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(),
+        home: RepaintBoundary(
+          key: const Key('stage'),
+          child: GameScreen(controller: game),
+        ),
+      ),
+    );
+    await _frames(tester, 100);
+    expect(find.byType(IntroOverlay), findsOneWidget);
+    await tester.runAsync(() => _save(tester, 'intro'));
+    await _frames(tester, 80);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    expect(find.byType(IntroOverlay), findsNothing);
+    expect(find.text('START CLIMB'), findsOneWidget);
+    game.dispose();
+  });
 }

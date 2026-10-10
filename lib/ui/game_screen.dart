@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../game/controller.dart';
 import '../game/types.dart';
 import '../render/painter.dart';
+import 'intro.dart';
 import 'panels.dart';
 import 'records.dart';
 import 'theme.dart';
@@ -29,7 +30,10 @@ const holdPumpDelay = Duration(milliseconds: 320);
 
 class GameScreen extends StatefulWidget {
   final GameController? controller;
-  const GameScreen({super.key, this.controller});
+
+  /// Plays the launch animation over the menu once; tests turn it off.
+  final bool showIntro;
+  const GameScreen({super.key, this.controller, this.showIntro = true});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -38,6 +42,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   late final GameController game = widget.controller ?? GameController();
   Records records = Records();
   bool help = false;
+  late bool intro = widget.showIntro;
   ({bool record, int previous})? result;
   int? _pointer;
   Offset? _from, _last;
@@ -304,6 +309,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
+                      ),
+                    if (intro)
+                      IntroOverlay(
+                        sprites: game.sprites,
+                        reducedMotion: game.reducedMotion,
+                        onDone: () => setState(() => intro = false),
                       ),
                   ],
                 ),

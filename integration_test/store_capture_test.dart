@@ -57,7 +57,7 @@ void main() {
         title: 'Rope Escape',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
-        home: GameScreen(controller: game),
+        home: GameScreen(controller: game, showIntro: false),
       ),
     );
     final boot = Stopwatch()..start();

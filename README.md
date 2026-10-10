@@ -61,6 +61,7 @@ flutter build appbundle           # Google Play（AAB）
 ## 程式結構
 
 - `lib/main.dart`：App 進入點，鎖定直向、沉浸式全螢幕。
+- `lib/ui/intro.dart`：啟動動畫（約 2.6 秒，點一下可跳過）：接續原生啟動畫面的深色鋼板，攝影機從高空俯衝進城市、人物盪繩入鏡、標題蓋印後淡入主選單；系統「減少動態效果」時只做淡入淡出。原生 LaunchScreen／Android launch_background 已配成同一深色。
 - `lib/game/types.dart`：繩索、角色、陷阱、道具、粒子、統計與狀態型別（`ClimbState` 含 `clone()` 供預測使用）。
 - `lib/game/rope_core.dart`：擺盪、跳離、抓取、陷阱、道具、里程碑、擦過判定與上升平台；`stepClimb` 為固定 1/60 秒步進，`predictClimb` 以同一積分器在複本上預測軌跡，不會動到真實狀態。
 - `lib/game/soft_rope.dart`：Verlet 節點、約束、回彈與曲線碰撞。
